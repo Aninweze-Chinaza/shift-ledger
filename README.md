@@ -78,7 +78,7 @@ shift-ledger/
 ├── style.css         # Typography, custom variables, and tabular numeric alignment
 ├── app.js            # State machine, math engine, storage controllers, event handlers
 └── README.md         # Operational handbook and technical manual
-
+```
 
 ## 🔮 Roadmap & Future Enhancements
 
