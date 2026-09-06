@@ -88,7 +88,7 @@ shift-ledger/
 - [ ] **Manager Action Lock:** PIN verification for deleting transaction records or clearing historical logs.
 - [ ] **Granular Expense Tagging:** Itemized tagging for fuel, power tokens, paper rolls, and shop maintenance.
 - [ ] **WhatsApp/PDF Summary:** One-tap export of the reconciliation sheet for fast owner reporting.
-- [ ] IndexedDB Migration: Extended offline storage capabilities for retail outlets handling months or years of dense transactional volume.
+- [ ] **IndexedDB Migration:** Extended offline storage capabilities for retail outlets handling months or years of dense transactional volume.
 
 ## 👩‍💻 Author
 
