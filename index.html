@@ -34,11 +34,16 @@
           <i class="bi bi-cash-stack text-warning fs-4"></i>
           <span class="brand-title">Shift Ledger</span>
         </a>
-        <span
-          class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle font-monospace"
-          id="navShiftBadge"
-          >Shift Closed</span
-        >
+        <div class="d-flex align-items-center gap-2">
+          <button class="btn btn-sm btn-outline-light" id="btnChangePin">
+            <i class="bi bi-key-fill me-1"></i> Change PIN
+          </button>
+          <span
+            class="badge bg-secondary-subtle text-secondary-emphasis border border-secondary-subtle font-monospace"
+            id="navShiftBadge"
+            >Shift Closed</span
+          >
+        </div>
       </div>
     </nav>
 
@@ -341,6 +346,32 @@
                         />
                       </div>
                     </div>
+                    <div class="col-md-3 d-none" id="expenseCategoryContainer">
+                      <label
+                        for="expenseCategorySelect"
+                        class="form-label small fw-semibold"
+                        >Expense Category</label
+                      >
+                      <select
+                        class="form-select"
+                        id="expenseCategorySelect"
+                        disabled
+                      >
+                        <option value="" selected>Select category</option>
+                        <option value="Inverter">Inverter</option>
+                        <option value="Thermal Paper Rolls">
+                          Thermal Paper Rolls
+                        </option>
+                        <option value="Power / Utility Tokens">
+                          Power / Utility Tokens
+                        </option>
+                        <option value="Maintenance / Repairs">
+                          Maintenance / Repairs
+                        </option>
+                        <option value="Staff Welfare">Staff Welfare</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
                     <div class="col-md-3 d-flex align-items-end">
                       <button type="submit" class="btn btn-dark w-100">
                         <i class="bi bi-plus-lg"></i> Add
@@ -407,69 +438,161 @@
                   closing.
                 </p>
 
-                <div class="border rounded-3 p-3 mb-3">
-                  <div
-                    class="d-flex justify-content-between align-items-center mb-3"
-                  >
-                    <span class="small fw-semibold">Cash Breakdown</span>
-                    <span class="small text-secondary">Number of notes</span>
-                  </div>
-                  <div class="row g-2">
-                    <div class="col-6">
-                      <label for="inputNote1000" class="form-label small mb-1"
-                        >₦1,000 notes</label
+                <div class="accordion mb-3" id="denominationAccordion">
+                  <div class="accordion-item border rounded-3 overflow-hidden">
+                    <h2 class="accordion-header" id="denominationHeading">
+                      <button
+                        class="accordion-button collapsed py-2"
+                        type="button"
+                        data-bs-toggle="collapse"
+                        data-bs-target="#denominationPanel"
+                        aria-expanded="false"
+                        aria-controls="denominationPanel"
                       >
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        class="form-control"
-                        id="inputNote1000"
-                        placeholder="0"
-                        inputmode="numeric"
-                      />
-                    </div>
-                    <div class="col-6">
-                      <label for="inputNote500" class="form-label small mb-1"
-                        >₦500 notes</label
-                      >
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        class="form-control"
-                        id="inputNote500"
-                        placeholder="0"
-                        inputmode="numeric"
-                      />
-                    </div>
-                    <div class="col-6">
-                      <label for="inputNote200" class="form-label small mb-1"
-                        >₦200 notes</label
-                      >
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        class="form-control"
-                        id="inputNote200"
-                        placeholder="0"
-                        inputmode="numeric"
-                      />
-                    </div>
-                    <div class="col-6">
-                      <label for="inputNote100" class="form-label small mb-1"
-                        >₦100 notes</label
-                      >
-                      <input
-                        type="number"
-                        min="0"
-                        step="1"
-                        class="form-control"
-                        id="inputNote100"
-                        placeholder="0"
-                        inputmode="numeric"
-                      />
+                        Count by Denominations
+                      </button>
+                    </h2>
+                    <div
+                      id="denominationPanel"
+                      class="accordion-collapse collapse"
+                      aria-labelledby="denominationHeading"
+                    >
+                      <div class="accordion-body p-3">
+                        <div
+                          class="denomination-grid"
+                          role="table"
+                          aria-label="Cash denomination counter"
+                        >
+                          <div
+                            class="denomination-row denomination-header"
+                            role="row"
+                          >
+                            <span role="columnheader">Note</span>
+                            <span role="columnheader">Quantity</span>
+                            <span role="columnheader" class="text-end"
+                              >Subtotal</span
+                            >
+                          </div>
+                          <div class="denomination-row" role="row">
+                            <label for="inputNote1000" role="rowheader"
+                              >₦1,000</label
+                            >
+                            <input
+                              type="number"
+                              min="0"
+                              step="1"
+                              class="form-control form-control-sm denomination-input"
+                              id="inputNote1000"
+                              placeholder="0"
+                              inputmode="numeric"
+                              aria-label="Quantity of ₦1,000 notes"
+                            />
+                            <span
+                              class="text-end font-tabular denomination-subtotal"
+                              id="subtotalNote1000"
+                              >₦0</span
+                            >
+                          </div>
+                          <div class="denomination-row" role="row">
+                            <label for="inputNote500" role="rowheader"
+                              >₦500</label
+                            >
+                            <input
+                              type="number"
+                              min="0"
+                              step="1"
+                              class="form-control form-control-sm denomination-input"
+                              id="inputNote500"
+                              placeholder="0"
+                              inputmode="numeric"
+                              aria-label="Quantity of ₦500 notes"
+                            />
+                            <span
+                              class="text-end font-tabular denomination-subtotal"
+                              id="subtotalNote500"
+                              >₦0</span
+                            >
+                          </div>
+                          <div class="denomination-row" role="row">
+                            <label for="inputNote200" role="rowheader"
+                              >₦200</label
+                            >
+                            <input
+                              type="number"
+                              min="0"
+                              step="1"
+                              class="form-control form-control-sm denomination-input"
+                              id="inputNote200"
+                              placeholder="0"
+                              inputmode="numeric"
+                              aria-label="Quantity of ₦200 notes"
+                            />
+                            <span
+                              class="text-end font-tabular denomination-subtotal"
+                              id="subtotalNote200"
+                              >₦0</span
+                            >
+                          </div>
+                          <div class="denomination-row" role="row">
+                            <label for="inputNote100" role="rowheader"
+                              >₦100</label
+                            >
+                            <input
+                              type="number"
+                              min="0"
+                              step="1"
+                              class="form-control form-control-sm denomination-input"
+                              id="inputNote100"
+                              placeholder="0"
+                              inputmode="numeric"
+                              aria-label="Quantity of ₦100 notes"
+                            />
+                            <span
+                              class="text-end font-tabular denomination-subtotal"
+                              id="subtotalNote100"
+                              >₦0</span
+                            >
+                          </div>
+                          <div class="denomination-row" role="row">
+                            <label for="inputNote50" role="rowheader"
+                              >₦50</label
+                            >
+                            <input
+                              type="number"
+                              min="0"
+                              step="1"
+                              class="form-control form-control-sm denomination-input"
+                              id="inputNote50"
+                              placeholder="0"
+                              inputmode="numeric"
+                              aria-label="Quantity of ₦50 notes"
+                            />
+                            <span
+                              class="text-end font-tabular denomination-subtotal"
+                              id="subtotalNote50"
+                              >₦0</span
+                            >
+                          </div>
+                        </div>
+                        <div
+                          class="denomination-total d-flex justify-content-between align-items-center mt-3 pt-3 border-top"
+                        >
+                          <span class="small fw-semibold">Total Counted</span>
+                          <span
+                            class="badge bg-dark font-tabular"
+                            id="denominationTotal"
+                            >₦0</span
+                          >
+                        </div>
+                        <button
+                          type="button"
+                          class="btn btn-outline-dark btn-sm w-100 mt-3"
+                          id="btnApplyDenominations"
+                        >
+                          <i class="bi bi-check2-circle me-1"></i> Apply to
+                          Closing Cash
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -522,12 +645,21 @@
                   </div>
                 </div>
 
-                <button
-                  class="btn btn-warning w-100 py-2 fw-semibold"
-                  id="btnCloseShift"
-                >
-                  <i class="bi bi-lock-fill me-1"></i> Reconcile & Close Shift
-                </button>
+                <div class="d-grid gap-2">
+                  <button
+                    class="btn btn-warning w-100 py-2 fw-semibold"
+                    id="btnCloseShift"
+                  >
+                    <i class="bi bi-lock-fill me-1"></i> Reconcile & Close Shift
+                  </button>
+                  <button
+                    class="btn btn-outline-dark w-100 py-2 fw-semibold"
+                    id="btnOpenHandover"
+                    type="button"
+                  >
+                    <i class="bi bi-arrow-left-right me-1"></i> Hand Over Shift
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -543,6 +675,15 @@
             </p>
           </div>
           <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-outline-dark" id="btnPrintSlip">
+              <i class="bi bi-printer-fill me-1"></i> Print Slip
+            </button>
+            <button
+              class="btn btn-success btn-sm"
+              onclick="shareShiftViaWhatsApp()"
+            >
+              <i class="bi bi-whatsapp me-1"></i> WhatsApp Summary
+            </button>
             <button class="btn btn-sm btn-outline-secondary" id="btnExportCSV">
               <i class="bi bi-download me-1"></i> Export CSV
             </button>
@@ -590,11 +731,283 @@
             ></button>
           </div>
           <div class="modal-body p-0">
+            <div
+              id="auditDenominationBreakdown"
+              class="p-3 border-bottom d-none"
+            ></div>
             <ul class="list-group list-group-flush" id="auditLogList"></ul>
           </div>
         </div>
       </div>
     </div>
+
+    <div
+      class="modal fade"
+      id="managerPinModal"
+      tabindex="-1"
+      aria-labelledby="managerPinTitle"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow">
+          <div class="modal-header">
+            <h5 class="modal-title" id="managerPinTitle">Manager Approval</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Cancel manager approval"
+            ></button>
+          </div>
+          <form id="managerPinForm">
+            <div class="modal-body">
+              <p class="small text-secondary" id="managerPinAction">
+                Enter the manager PIN to continue.
+              </p>
+              <label for="managerPinInput" class="form-label small fw-semibold"
+                >Manager PIN</label
+              >
+              <input
+                type="password"
+                class="form-control form-control-lg text-center font-tabular"
+                id="managerPinInput"
+                inputmode="numeric"
+                autocomplete="current-password"
+                pattern="[0-9]{4}"
+                minlength="4"
+                maxlength="4"
+                placeholder="••••"
+                aria-describedby="managerPinFeedback"
+                required
+              />
+              <div
+                id="managerPinFeedback"
+                class="invalid-feedback d-block"
+                role="alert"
+              ></div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Cancel
+              </button>
+              <button type="submit" class="btn btn-dark">
+                <i class="bi bi-shield-lock-fill me-1"></i> Verify PIN
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="modal fade"
+      id="changePinModal"
+      tabindex="-1"
+      aria-labelledby="changePinTitle"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow">
+          <div class="modal-header">
+            <h5 class="modal-title" id="changePinTitle">Change Manager PIN</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close change PIN dialog"
+            ></button>
+          </div>
+          <form id="changePinForm" novalidate>
+            <div class="modal-body">
+              <div class="mb-3">
+                <label
+                  for="currentPinInput"
+                  class="form-label small fw-semibold"
+                  >Current PIN</label
+                >
+                <input
+                  type="password"
+                  class="form-control text-center font-tabular"
+                  id="currentPinInput"
+                  inputmode="numeric"
+                  autocomplete="current-password"
+                  pattern="[0-9]{4}"
+                  maxlength="4"
+                  required
+                />
+              </div>
+              <div class="mb-2">
+                <label for="newPinInput" class="form-label small fw-semibold"
+                  >New PIN</label
+                >
+                <input
+                  type="password"
+                  class="form-control text-center font-tabular"
+                  id="newPinInput"
+                  inputmode="numeric"
+                  autocomplete="new-password"
+                  pattern="[0-9]{4}"
+                  maxlength="4"
+                  required
+                />
+              </div>
+              <div
+                id="changePinFeedback"
+                class="small"
+                role="alert"
+                aria-live="polite"
+              ></div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Cancel
+              </button>
+              <button type="submit" class="btn btn-dark" id="btnSaveNewPin">
+                <i class="bi bi-check2-circle me-1"></i> Update PIN
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div
+      class="modal fade"
+      id="handoverModal"
+      tabindex="-1"
+      aria-labelledby="handoverTitle"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow">
+          <div class="modal-header">
+            <h5 class="modal-title" id="handoverTitle">Hand Over Shift</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close handover dialog"
+            ></button>
+          </div>
+          <form id="handoverForm">
+            <div class="modal-body">
+              <div class="mb-3">
+                <label
+                  for="handoverCarriedAmount"
+                  class="form-label small fw-semibold"
+                  >Cash Carried Forward</label
+                >
+                <div class="input-group">
+                  <span class="input-group-text">₦</span>
+                  <input
+                    type="number"
+                    class="form-control font-tabular"
+                    id="handoverCarriedAmount"
+                    readonly
+                  />
+                </div>
+              </div>
+              <div class="mb-3">
+                <label
+                  for="incomingCashierName"
+                  class="form-label small fw-semibold"
+                  >Incoming Cashier</label
+                >
+                <input
+                  type="text"
+                  class="form-control"
+                  id="incomingCashierName"
+                  placeholder="Cashier name"
+                  required
+                />
+              </div>
+              <div class="mb-2">
+                <label for="handoverNotes" class="form-label small fw-semibold"
+                  >Handover Notes
+                  <span class="text-secondary fw-normal"
+                    >(optional)</span
+                  ></label
+                >
+                <textarea
+                  class="form-control"
+                  id="handoverNotes"
+                  rows="3"
+                  placeholder="Add an optional note"
+                ></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                class="btn btn-dark"
+                id="btnConfirmHandover"
+              >
+                <i class="bi bi-check2-circle me-1"></i> Confirm Handover
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <section
+      id="thermalReceipt"
+      class="d-none d-print-block"
+      aria-label="Thermal shift receipt"
+    >
+      <div class="thermal-receipt-title">SHIFT LEDGER</div>
+      <div class="thermal-receipt-subtitle">END OF SHIFT CASH CHECK</div>
+      <div class="thermal-receipt-rule">--------------------------------</div>
+      <div class="thermal-receipt-row">
+        <span>Cashier</span><strong id="receiptCashier"></strong>
+      </div>
+      <div class="thermal-receipt-row">
+        <span>Date</span><strong id="receiptDate"></strong>
+      </div>
+      <div class="thermal-receipt-row">
+        <span>Time</span><strong id="receiptTime"></strong>
+      </div>
+      <div class="thermal-receipt-rule">--------------------------------</div>
+      <div class="thermal-receipt-row">
+        <span>Starting Float</span><strong id="receiptOpeningCash"></strong>
+      </div>
+      <div class="thermal-receipt-row">
+        <span>Total Cash In</span><strong id="receiptTotalIn"></strong>
+      </div>
+      <div class="thermal-receipt-row">
+        <span>Total Cash Out</span><strong id="receiptTotalOut"></strong>
+      </div>
+      <div class="thermal-receipt-row">
+        <span>Expected Cash</span><strong id="receiptExpected"></strong>
+      </div>
+      <div class="thermal-receipt-row">
+        <span>Actual Counted</span><strong id="receiptCounted"></strong>
+      </div>
+      <div class="thermal-receipt-row">
+        <span>Variance</span><strong id="receiptVariance"></strong>
+      </div>
+      <div class="thermal-receipt-rule">--------------------------------</div>
+      <div class="thermal-signatures">
+        <div>Cashier Signature: __________________</div>
+        <div>Manager Signature: __________________</div>
+      </div>
+      <div class="thermal-receipt-footer">Thank you</div>
+    </section>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="app.js"></script>

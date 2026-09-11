@@ -24,6 +24,47 @@ h5 {
   font-variant-numeric: tabular-nums;
 }
 
+.denomination-grid {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.denomination-row {
+  display: grid;
+  grid-template-columns: minmax(4.5rem, 1fr) minmax(4.5rem, 0.8fr) minmax(
+      5.5rem,
+      1fr
+    );
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.denomination-header {
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.denomination-row label {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.denomination-input {
+  min-width: 0;
+  text-align: right;
+}
+
+.denomination-subtotal {
+  color: #334155;
+  font-size: 0.875rem;
+}
+
+.denomination-total .badge {
+  font-size: 0.9rem;
+}
+
 .metric-card {
   transition: transform 0.15s ease-in-out;
 }
@@ -66,5 +107,70 @@ h5 {
   .table-responsive th,
   .table-responsive td {
     white-space: nowrap;
+  }
+}
+
+@media print {
+  @page {
+    margin: 0;
+  }
+
+  body > * {
+    display: none !important;
+  }
+
+  body > #thermalReceipt {
+    display: block !important;
+    width: 58mm;
+    margin: 0;
+    padding: 3mm;
+    color: #000;
+    background: #fff;
+    font-family: "Courier New", Courier, monospace;
+    font-size: 10pt;
+    line-height: 1.35;
+  }
+
+  #thermalReceipt * {
+    color: #000 !important;
+  }
+
+  .thermal-receipt-title,
+  .thermal-receipt-subtitle,
+  .thermal-receipt-footer {
+    text-align: center;
+    font-weight: 700;
+  }
+
+  .thermal-receipt-subtitle {
+    font-size: 9pt;
+  }
+
+  .thermal-receipt-rule {
+    white-space: pre;
+    overflow: hidden;
+  }
+
+  .thermal-receipt-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 1em;
+  }
+
+  .thermal-receipt-row strong {
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .thermal-signatures {
+    display: grid;
+    gap: 1.5em;
+    margin-top: 2em;
+    white-space: nowrap;
+    font-size: 8pt;
+  }
+
+  .thermal-receipt-footer {
+    margin-top: 2em;
   }
 }

@@ -3,6 +3,7 @@ const STORAGE_KEYS = {
   ACTIVE: "shift_ledger_active",
   HISTORY: "shift_ledger_history",
   DEBTS: "shift_ledger_debts",
+  MANAGER_PIN: "shift_ledger_manager_pin",
 };
 
 // Application State
@@ -10,6 +11,10 @@ let activeShift = null;
 let shiftHistory = [];
 let debts = [];
 let auditModalInstance = null;
+let managerPinModalInstance = null;
+let changePinModalInstance = null;
+let handoverModalInstance = null;
+let pendingManagerAction = null;
 
 // DOM Elements
 const views = {
@@ -36,6 +41,7 @@ const displays = {
   reconcileExpected: document.getElementById("reconcileExpectedDisplay"),
   reconcileVariance: document.getElementById("reconcileVarianceDisplay"),
   reconcileBadge: document.getElementById("reconcileStatusBadge"),
+  denominationTotal: document.getElementById("denominationTotal"),
   debtCount: document.getElementById("debtCount"),
   overdueDebtAlert: document.getElementById("overdueDebtAlert"),
   overdueDebtCount: document.getElementById("overdueDebtCount"),
@@ -55,17 +61,64 @@ const inputs = {
   txType: document.getElementById("inputTxType"),
   txAmount: document.getElementById("inputTxAmount"),
   txNote: document.getElementById("inputTxNote"),
+  expenseCategory: document.getElementById("expenseCategorySelect"),
+  expenseCategoryContainer: document.getElementById("expenseCategoryContainer"),
   debtCustomer: document.getElementById("inputDebtCustomer"),
   debtAmount: document.getElementById("inputDebtAmount"),
   debtDueDate: document.getElementById("inputDebtDueDate"),
   countedCash: document.getElementById("inputCountedCash"),
 };
 
+const managerPin = {
+  modal: document.getElementById("managerPinModal"),
+  form: document.getElementById("managerPinForm"),
+  input: document.getElementById("managerPinInput"),
+  action: document.getElementById("managerPinAction"),
+  feedback: document.getElementById("managerPinFeedback"),
+};
+
+const changePin = {
+  modal: document.getElementById("changePinModal"),
+  form: document.getElementById("changePinForm"),
+  current: document.getElementById("currentPinInput"),
+  next: document.getElementById("newPinInput"),
+  feedback: document.getElementById("changePinFeedback"),
+};
+
+const handover = {
+  modal: document.getElementById("handoverModal"),
+  form: document.getElementById("handoverForm"),
+  carriedAmount: document.getElementById("handoverCarriedAmount"),
+  incomingCashier: document.getElementById("incomingCashierName"),
+  notes: document.getElementById("handoverNotes"),
+};
+
 const noteInputs = [
-  { denomination: 1000, input: document.getElementById("inputNote1000") },
-  { denomination: 500, input: document.getElementById("inputNote500") },
-  { denomination: 200, input: document.getElementById("inputNote200") },
-  { denomination: 100, input: document.getElementById("inputNote100") },
+  {
+    denomination: 1000,
+    input: document.getElementById("inputNote1000"),
+    subtotal: document.getElementById("subtotalNote1000"),
+  },
+  {
+    denomination: 500,
+    input: document.getElementById("inputNote500"),
+    subtotal: document.getElementById("subtotalNote500"),
+  },
+  {
+    denomination: 200,
+    input: document.getElementById("inputNote200"),
+    subtotal: document.getElementById("subtotalNote200"),
+  },
+  {
+    denomination: 100,
+    input: document.getElementById("inputNote100"),
+    subtotal: document.getElementById("subtotalNote100"),
+  },
+  {
+    denomination: 50,
+    input: document.getElementById("inputNote50"),
+    subtotal: document.getElementById("subtotalNote50"),
+  },
 ];
 
 // Utility Helpers
@@ -137,11 +190,30 @@ const computeTotals = (shift) => {
 const calculateCountedCash = () => {
   const total = noteInputs.reduce((sum, { denomination, input }) => {
     const count = Math.max(0, parseInt(input.value, 10) || 0);
-    return sum + denomination * count;
+    const subtotal = denomination * count;
+    input.value = count || "";
+    input.nextElementSibling.textContent = formatCurrency(subtotal);
+    return sum + subtotal;
   }, 0);
 
-  inputs.countedCash.value = total.toFixed(2);
+  displays.denominationTotal.textContent = formatCurrency(total);
   return total;
+};
+
+const getDenominationCounts = () =>
+  Object.fromEntries(
+    noteInputs.map(({ denomination, input }) => [
+      denomination,
+      Math.max(0, parseInt(input.value, 10) || 0),
+    ]),
+  );
+
+const restoreDenominationCounts = (counts = {}) => {
+  noteInputs.forEach(({ denomination, input }) => {
+    const count = Number(counts[denomination]) || 0;
+    input.value = count || "";
+  });
+  calculateCountedCash();
 };
 
 // Storage Controllers
@@ -175,6 +247,207 @@ const persistHistory = () => {
   localStorage.setItem(STORAGE_KEYS.HISTORY, JSON.stringify(shiftHistory));
 };
 
+const getManagerPin = () =>
+  localStorage.getItem(STORAGE_KEYS.MANAGER_PIN) || "1234";
+
+const requestManagerAccess = (actionCallback, actionDescription) => {
+  pendingManagerAction = actionCallback;
+  managerPin.action.textContent = `Enter the manager PIN to ${actionDescription}.`;
+  managerPin.input.value = "";
+  managerPin.input.classList.remove("is-invalid");
+  managerPin.feedback.textContent = "";
+
+  if (!managerPinModalInstance) {
+    managerPinModalInstance = new bootstrap.Modal(managerPin.modal);
+  }
+  managerPinModalInstance.show();
+  managerPin.modal.addEventListener(
+    "shown.bs.modal",
+    () => managerPin.input.focus(),
+    { once: true },
+  );
+};
+
+managerPin.form.addEventListener("submit", (event) => {
+  event.preventDefault();
+
+  if (!managerPin.input.checkValidity()) {
+    managerPin.input.classList.add("is-invalid");
+    managerPin.feedback.textContent = "Enter a valid 4-digit numeric PIN.";
+    managerPin.input.focus();
+    return;
+  }
+
+  if (managerPin.input.value !== getManagerPin()) {
+    managerPin.input.classList.add("is-invalid");
+    managerPin.feedback.textContent = "Incorrect manager PIN.";
+    managerPin.input.select();
+    return;
+  }
+
+  const approvedAction = pendingManagerAction;
+  pendingManagerAction = null;
+  managerPin.input.classList.remove("is-invalid");
+  managerPin.feedback.textContent = "";
+  managerPinModalInstance.hide();
+  if (approvedAction) approvedAction();
+});
+
+managerPin.modal.addEventListener("hidden.bs.modal", () => {
+  pendingManagerAction = null;
+  managerPin.form.reset();
+  managerPin.input.classList.remove("is-invalid");
+  managerPin.feedback.textContent = "";
+});
+
+const openChangePinModal = () => {
+  changePin.form.reset();
+  changePin.current.classList.remove("is-invalid");
+  changePin.next.classList.remove("is-invalid");
+  changePin.feedback.className = "small";
+  changePin.feedback.textContent = "";
+
+  if (!changePinModalInstance) {
+    changePinModalInstance = new bootstrap.Modal(changePin.modal);
+  }
+  changePinModalInstance.show();
+  changePin.modal.addEventListener(
+    "shown.bs.modal",
+    () => changePin.current.focus(),
+    { once: true },
+  );
+};
+
+document
+  .getElementById("btnChangePin")
+  .addEventListener("click", openChangePinModal);
+
+changePin.form.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const currentPin = changePin.current.value;
+  const newPin = changePin.next.value;
+  const pinPattern = /^\d{4}$/;
+
+  changePin.current.classList.remove("is-invalid");
+  changePin.next.classList.remove("is-invalid");
+  changePin.feedback.className = "small";
+  changePin.feedback.textContent = "";
+
+  if (currentPin !== getManagerPin()) {
+    changePin.current.classList.add("is-invalid");
+    changePin.feedback.classList.add("text-danger");
+    changePin.feedback.textContent = "The current PIN is incorrect.";
+    changePin.current.focus();
+    return;
+  }
+
+  if (!pinPattern.test(newPin)) {
+    changePin.next.classList.add("is-invalid");
+    changePin.feedback.classList.add("text-danger");
+    changePin.feedback.textContent = "The new PIN must be exactly 4 digits.";
+    changePin.next.focus();
+    return;
+  }
+
+  localStorage.setItem(STORAGE_KEYS.MANAGER_PIN, newPin);
+  changePin.feedback.classList.add("text-success");
+  changePin.feedback.textContent = "Manager PIN updated successfully.";
+  window.setTimeout(() => changePinModalInstance.hide(), 1000);
+});
+
+const openHandoverModal = () => {
+  const storedActiveShift = localStorage.getItem(STORAGE_KEYS.ACTIVE);
+  const outgoingShift = storedActiveShift
+    ? JSON.parse(storedActiveShift)
+    : activeShift;
+
+  if (!outgoingShift) {
+    alert("There is no active shift to hand over.");
+    return;
+  }
+
+  const carriedAmount =
+    outgoingShift.countedCash !== undefined
+      ? Number(outgoingShift.countedCash) || 0
+      : Number(inputs.countedCash.value) || 0;
+  handover.form.reset();
+  handover.carriedAmount.value = carriedAmount.toFixed(2);
+
+  if (!handoverModalInstance) {
+    handoverModalInstance = new bootstrap.Modal(handover.modal);
+  }
+  handoverModalInstance.show();
+  handover.modal.addEventListener(
+    "shown.bs.modal",
+    () => handover.incomingCashier.focus(),
+    { once: true },
+  );
+};
+
+document
+  .getElementById("btnOpenHandover")
+  .addEventListener("click", openHandoverModal);
+
+handover.form.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const incomingCashier = handover.incomingCashier.value.trim();
+  if (!incomingCashier) {
+    handover.incomingCashier.focus();
+    return;
+  }
+
+  const carriedAmount = Number(handover.carriedAmount.value) || 0;
+  const outgoingShift = activeShift;
+  if (!outgoingShift) return;
+
+  const totals = computeTotals(outgoingShift);
+  const outgoingRecord = {
+    ...outgoingShift,
+    status: "reconciled",
+    openingCash: totals.opening,
+    totalIn: totals.totalIn,
+    totalOut: totals.totalOut,
+    totalTransfers: totals.totalTransfers,
+    totalPosWithdrawals: totals.totalPosWithdrawals,
+    expected: totals.expected,
+    counted: carriedAmount,
+    countedCash: carriedAmount,
+    handedOverTo: incomingCashier,
+    handoverNotes: handover.notes.value.trim(),
+    closedAt: new Date().toISOString(),
+  };
+
+  const incomingShift = {
+    id: `shift_${Date.now()}`,
+    cashierName: incomingCashier,
+    shiftDate: getToday(),
+    startingCash: carriedAmount,
+    openingCash: carriedAmount,
+    status: "open",
+    transactions: [],
+    denominationCounts: {},
+    countedCash: 0,
+    totalSales: 0,
+    totalTopups: 0,
+    totalCashPayouts: 0,
+    totalExpenses: 0,
+    totalDebtPayments: 0,
+    totalIn: 0,
+    totalOut: 0,
+    totalTransfers: 0,
+    totalPosWithdrawals: 0,
+    expected: 0,
+  };
+
+  shiftHistory.push(outgoingRecord);
+  activeShift = incomingShift;
+  persistHistory();
+  persistActiveShift();
+  inputs.countedCash.value = "";
+  handoverModalInstance.hide();
+  renderApp();
+});
+
 // UI Renderers
 const renderApp = () => {
   if (activeShift) {
@@ -187,6 +460,7 @@ const renderApp = () => {
     renderActiveShiftMetrics();
     renderTransactionsTable();
     renderDebtBook();
+    restoreDenominationCounts(activeShift.denominationCounts);
     updateReconciliationDisplay();
   } else {
     views.open.classList.remove("d-none");
@@ -233,7 +507,10 @@ const renderDebtBook = () => {
       <td class="fw-semibold">${escapeHtml(debt.customerName)}</td>
       <td class="small ${isOverdue ? "text-danger fw-semibold" : "text-secondary"}">${escapeHtml(debt.dueDate)}</td>
       <td class="text-end font-tabular">${formatCurrency(debt.amount)}</td>
-      <td class="text-end"><button class="btn btn-sm btn-outline-success" onclick="handleDebtPayment('${debt.id}')"><i class="bi bi-check2 me-1"></i> Paid</button></td>
+      <td class="text-end">
+        <button class="btn btn-sm btn-outline-success" onclick="handleDebtPayment('${debt.id}')"><i class="bi bi-check2 me-1"></i> Paid</button>
+        <button class="btn btn-sm btn-outline-danger ms-1" onclick="handleDeleteDebt('${debt.id}')" aria-label="Delete debt for ${escapeHtml(debt.customerName)}"><i class="bi bi-trash3"></i></button>
+      </td>
     `;
     tables.debtBody.appendChild(row);
   });
@@ -311,11 +588,15 @@ const renderTransactionsTable = () => {
         debt_payment: ["badge-cash-in", "Customer Debt Paid (+ Cash In)", "+"],
       }[tx.type] || ["badge-expense", tx.type, "-"];
       const [badgeClass, typeLabel, sign] = transactionDetails;
+      const categoryBadge =
+        tx.type === "expense" && tx.category
+          ? `<span class="badge bg-secondary-subtle text-secondary-emphasis ms-1">${escapeHtml(tx.category)}</span>`
+          : "";
 
       const row = document.createElement("tr");
       row.innerHTML = `
       <td class="font-tabular small text-secondary">${tx.time}</td>
-      <td><span class="badge ${badgeClass}">${typeLabel}</span></td>
+      <td><span class="badge ${badgeClass}">${typeLabel}</span>${categoryBadge}</td>
       <td class="text-truncate" style="max-width: 200px;">${tx.note || '<span class="text-muted small">No note</span>'}</td>
       <td class="text-end font-tabular fw-semibold">${sign}${formatCurrency(tx.amount)}</td>
       <td class="text-center">
@@ -406,6 +687,14 @@ const renderHistoryTable = () => {
 };
 
 // Handlers & Actions
+inputs.txType.addEventListener("change", () => {
+  const isExpense = inputs.txType.value === "expense";
+  inputs.expenseCategoryContainer.classList.toggle("d-none", !isExpense);
+  inputs.expenseCategory.disabled = !isExpense;
+  inputs.expenseCategory.required = isExpense;
+  if (!isExpense) inputs.expenseCategory.value = "";
+});
+
 forms.startShift.addEventListener("submit", (e) => {
   e.preventDefault();
   const name = inputs.cashierName.value.trim();
@@ -421,6 +710,7 @@ forms.startShift.addEventListener("submit", (e) => {
     openingCash: startingCash,
     status: "open",
     transactions: [],
+    denominationCounts: {},
   };
 
   persistActiveShift();
@@ -428,6 +718,7 @@ forms.startShift.addEventListener("submit", (e) => {
   noteInputs.forEach(({ input }) => {
     input.value = "";
   });
+  calculateCountedCash();
   renderApp();
 });
 
@@ -438,8 +729,10 @@ forms.transaction.addEventListener("submit", (e) => {
   const type = inputs.txType.value;
   const amount = parseFloat(inputs.txAmount.value);
   const note = inputs.txNote.value.trim();
+  const selectedCategory = inputs.expenseCategory.value;
 
-  if (isNaN(amount) || amount <= 0) return;
+  if (isNaN(amount) || amount <= 0 || (type === "expense" && !selectedCategory))
+    return;
 
   const newTx = {
     id: `tx_${Date.now()}`,
@@ -450,6 +743,7 @@ forms.transaction.addEventListener("submit", (e) => {
     type,
     amount,
     note,
+    ...(type === "expense" ? { category: selectedCategory } : {}),
   };
 
   activeShift.transactions.push(newTx);
@@ -457,6 +751,7 @@ forms.transaction.addEventListener("submit", (e) => {
 
   inputs.txAmount.value = "";
   inputs.txNote.value = "";
+  if (type === "expense") inputs.expenseCategory.value = "";
   inputs.txAmount.focus();
 
   renderActiveShiftMetrics();
@@ -526,21 +821,49 @@ window.handleDebtPayment = (id) => {
 
 window.handleDeleteTx = (id) => {
   if (!activeShift) return;
-  activeShift.transactions = activeShift.transactions.filter(
-    (t) => t.id !== id,
-  );
-  persistActiveShift();
-  renderActiveShiftMetrics();
-  renderTransactionsTable();
-  updateReconciliationDisplay();
+  requestManagerAccess(() => {
+    activeShift.transactions = activeShift.transactions.filter(
+      (t) => t.id !== id,
+    );
+    persistActiveShift();
+    renderActiveShiftMetrics();
+    renderTransactionsTable();
+    updateReconciliationDisplay();
+  }, "delete this transaction");
+};
+
+window.handleDeleteDebt = (id) => {
+  const debt = debts.find((item) => item.id === id && item.status === "unpaid");
+  if (!debt) return;
+
+  requestManagerAccess(() => {
+    debts = debts.filter((item) => item.id !== id);
+    localStorage.setItem(STORAGE_KEYS.DEBTS, JSON.stringify(debts));
+    renderDebtBook();
+  }, `delete the unpaid debt for ${debt.customerName}`);
 };
 
 noteInputs.forEach(({ input }) => {
   input.addEventListener("input", () => {
     calculateCountedCash();
-    updateReconciliationDisplay();
+    if (activeShift) {
+      activeShift.denominationCounts = getDenominationCounts();
+      persistActiveShift();
+    }
   });
 });
+
+document
+  .getElementById("btnApplyDenominations")
+  .addEventListener("click", () => {
+    const total = calculateCountedCash();
+    inputs.countedCash.value = total.toFixed(2);
+    if (activeShift) {
+      activeShift.countedCash = total;
+      persistActiveShift();
+    }
+    updateReconciliationDisplay();
+  });
 
 document.getElementById("btnCloseShift").addEventListener("click", () => {
   if (!activeShift) return;
@@ -596,6 +919,7 @@ document.getElementById("btnCloseShift").addEventListener("click", () => {
     totalPosWithdrawals,
     expected,
     counted,
+    denominationCounts: getDenominationCounts(),
     closedAt: new Date().toISOString(),
   };
 
@@ -612,7 +936,35 @@ window.showShiftAudit = (index) => {
   if (!targetShift) return;
 
   const modalList = document.getElementById("auditLogList");
+  const denominationBreakdown = document.getElementById(
+    "auditDenominationBreakdown",
+  );
   modalList.innerHTML = "";
+
+  if (targetShift.denominationCounts) {
+    const denominationRows = [1000, 500, 200, 100, 50]
+      .map((denomination) => {
+        const count = Number(targetShift.denominationCounts[denomination]) || 0;
+        return `<div class="d-flex justify-content-between small"><span>${formatCurrency(denomination)} notes</span><span class="font-tabular">${count} × ${formatCurrency(denomination)} = ${formatCurrency(count * denomination)}</span></div>`;
+      })
+      .join("");
+    const total = [1000, 500, 200, 100, 50].reduce(
+      (sum, denomination) =>
+        sum +
+        denomination *
+          (Number(targetShift.denominationCounts[denomination]) || 0),
+      0,
+    );
+    denominationBreakdown.classList.remove("d-none");
+    denominationBreakdown.innerHTML = `
+      <div class="small fw-semibold mb-2">Physical Cash Denominations</div>
+      <div class="d-grid gap-1">${denominationRows}</div>
+      <div class="d-flex justify-content-between border-top mt-2 pt-2 small fw-bold"><span>Total Counted</span><span class="font-tabular">${formatCurrency(total)}</span></div>
+    `;
+  } else {
+    denominationBreakdown.classList.add("d-none");
+    denominationBreakdown.innerHTML = "";
+  }
 
   if (targetShift.transactions.length === 0) {
     modalList.innerHTML =
@@ -663,6 +1015,158 @@ window.showShiftAudit = (index) => {
   auditModalInstance.show();
 };
 
+const printShiftReceipt = () => {
+  const shift = activeShift || shiftHistory[shiftHistory.length - 1];
+  if (!shift) {
+    alert("No active or completed shift is available to print.");
+    return;
+  }
+
+  const totals = computeTotals(shift);
+  const counted = activeShift
+    ? Number(inputs.countedCash.value) || 0
+    : Number(shift.counted) || 0;
+  const variance = counted - totals.expected;
+  const receiptTime = shift.closedAt ? new Date(shift.closedAt) : new Date();
+  const receiptValues = {
+    receiptCashier: shift.cashierName,
+    receiptDate: shift.shiftDate,
+    receiptTime: receiptTime.toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+    receiptOpeningCash: formatCurrency(totals.opening),
+    receiptTotalIn: formatCurrency(totals.totalIn),
+    receiptTotalOut: formatCurrency(totals.totalOut),
+    receiptExpected: formatCurrency(totals.expected),
+    receiptCounted: formatCurrency(counted),
+    receiptVariance: `${variance > 0 ? "+" : ""}${formatCurrency(variance)}`,
+  };
+
+  Object.entries(receiptValues).forEach(([id, value]) => {
+    document.getElementById(id).textContent = value;
+  });
+
+  window.print();
+};
+
+window.shareShiftViaWhatsApp = () => {
+  const storedActiveShift = localStorage.getItem(STORAGE_KEYS.ACTIVE);
+  let shift = null;
+
+  try {
+    shift = storedActiveShift ? JSON.parse(storedActiveShift) : null;
+  } catch (error) {
+    console.error("Failed reading active shift for WhatsApp summary", error);
+  }
+
+  if (!shift) {
+    try {
+      const storedHistory = localStorage.getItem(STORAGE_KEYS.HISTORY);
+      const history = storedHistory ? JSON.parse(storedHistory) : [];
+      shift = Array.isArray(history) ? history[history.length - 1] : null;
+    } catch (error) {
+      console.error("Failed reading shift history for WhatsApp summary", error);
+    }
+  }
+
+  const readDomAmount = (element) => {
+    const rawValue = element?.value ?? element?.textContent ?? "";
+    return (
+      Number(
+        String(rawValue)
+          .replace(/[^0-9.-]/g, "")
+          .replace(/,/g, ""),
+      ) || 0
+    );
+  };
+
+  let cashierName;
+  let shiftDate;
+  let opening;
+  let totalIn;
+  let totalOut;
+  let expected;
+  let counted;
+  let totalTransfers;
+
+  if (shift) {
+    const totals = computeTotals(shift);
+    const storedAmount = (value, fallback) =>
+      value === undefined || value === null ? fallback : Number(value) || 0;
+    cashierName = shift.cashierName;
+    shiftDate = shift.shiftDate;
+    opening = totals.opening;
+    totalIn = storedAmount(shift.totalIn, totals.totalIn);
+    totalOut = storedAmount(shift.totalOut, totals.totalOut);
+    expected = storedAmount(shift.expected, totals.expected);
+    counted =
+      shift.countedCash !== undefined
+        ? Number(shift.countedCash) || 0
+        : Number(shift.counted) || Number(inputs.countedCash.value) || 0;
+    totalTransfers = storedAmount(shift.totalTransfers, totals.totalTransfers);
+  } else {
+    cashierName = inputs.cashierName.value.trim() || "Not entered";
+    shiftDate = inputs.shiftDate.value || getToday();
+    opening = readDomAmount(inputs.openingCash);
+    totalIn = readDomAmount(displays.totalIn);
+    expected = readDomAmount(displays.expected);
+    counted = readDomAmount(inputs.countedCash);
+    totalOut = Math.max(0, opening + totalIn - expected);
+    totalTransfers = readDomAmount(displays.transfers);
+  }
+
+  const variance = counted - expected;
+  const reconciliationStatus =
+    Math.abs(variance) < 0.01
+      ? "✅ Balanced"
+      : variance < 0
+        ? "⚠️ Short"
+        : "💰 Over";
+
+  const storedDebts =
+    localStorage.getItem("shift_ledger_debtors") ||
+    localStorage.getItem(STORAGE_KEYS.DEBTS);
+  let pendingDebts = [];
+  try {
+    pendingDebts = storedDebts ? JSON.parse(storedDebts) : [];
+  } catch (error) {
+    console.error("Failed reading customer debts for WhatsApp summary", error);
+  }
+  const outstandingDebts = pendingDebts.filter(
+    (debt) => debt.status === "unpaid",
+  );
+  const outstandingDebtTotal = outstandingDebts.reduce(
+    (sum, debt) => sum + (Number(debt.amount) || 0),
+    0,
+  );
+
+  const summary = [
+    "*SHIFT LEDGER DAILY SUMMARY*",
+    "",
+    `*Cashier:* ${cashierName}`,
+    `*Date:* ${shiftDate}`,
+    "",
+    `• *Starting Float:* ${formatCurrency(opening)}`,
+    `• *Total Cash In:* ${formatCurrency(totalIn)}`,
+    `• *Total Cash Out:* ${formatCurrency(totalOut)}`,
+    `• *Expected Drawer:* ${formatCurrency(expected)}`,
+    `• *Counted Cash:* ${formatCurrency(counted)}`,
+    `• *Variance:* ${variance > 0 ? "+" : ""}${formatCurrency(variance)}`,
+    `• *Digital Transfers:* ${formatCurrency(totalTransfers)}`,
+    `• *Reconciliation:* ${reconciliationStatus}`,
+    "",
+    `*Outstanding Credit:* ${formatCurrency(outstandingDebtTotal)} (${outstandingDebts.length} ${outstandingDebts.length === 1 ? "account" : "accounts"})`,
+  ].join("\n");
+
+  const encodedMessage = encodeURIComponent(summary);
+  window.open(`https://wa.me/?text=${encodedMessage}`, "_blank");
+};
+
+document
+  .getElementById("btnPrintSlip")
+  .addEventListener("click", printShiftReceipt);
+
 document.getElementById("btnExportCSV").addEventListener("click", () => {
   if (shiftHistory.length === 0) {
     alert("No past shift data available to export.");
@@ -681,6 +1185,7 @@ document.getElementById("btnExportCSV").addEventListener("click", () => {
     "Expected",
     "Counted",
     "Variance",
+    "ExpenseCategory",
   ];
   const csvRows = [headers.join(",")];
 
@@ -698,6 +1203,11 @@ document.getElementById("btnExportCSV").addEventListener("click", () => {
       s.expected.toFixed(2),
       s.counted.toFixed(2),
       variance,
+      `"${(s.transactions || [])
+        .filter((tx) => tx.type === "expense" && tx.category)
+        .map((tx) => tx.category)
+        .join("; ")
+        .replace(/"/g, '""')}"`,
     ];
     csvRows.push(row.join(","));
   });
@@ -723,11 +1233,13 @@ document.getElementById("btnClearHistory").addEventListener("click", () => {
   const confirmed = confirm(
     "Are you sure you want to permanently clear all historical shifts?",
   );
-  if (confirmed) {
+  if (!confirmed) return;
+
+  requestManagerAccess(() => {
     shiftHistory = [];
     persistHistory();
     renderHistoryTable();
-  }
+  }, "clear all past shift history");
 });
 
 // Initialization

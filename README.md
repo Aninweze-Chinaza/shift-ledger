@@ -58,15 +58,18 @@ $$\text{Variance} = \text{Actual Counted Cash} - \text{Expected Drawer}$$
 
 ---
 
-## ✨ Core Features
+## ✨ Core Features (v1.0 Production)
 
-* **Dedicated Customer Debt Ledger:** Track unpaid customer tickets with customer names, contact references, debt values, and promised payback dates.
-* **Overdue Bill Alert Banner:** Dynamic notification alerts cashiers when a debtor's promised payback deadline has passed.
-* **State Persistence Across Refreshes:** Active shift state resides in `shift_ledger_active` to safeguard unsaved entries during device power cuts or accidental browser tab closures.
-* **Instant Feed Auditing:** Real-time transaction list with color-coded classification tags and single-click removal.
-* **Granular Shift Archive:** Closed shifts archive to local memory with an interactive breakdown modal displaying exact timestamps and line-item notes.
-* **Spreadsheet Portability:** Export full historical records to a standard `.csv` file format ready for Microsoft Excel or Google Sheets.
-* **Zero Network Footprint:** Runs entirely client-side without databases, API keys, or active internet connection.
+* **Denomination Calculator:** Built-in physical cash breakdown (₦1,000, ₦500, ₦200, ₦100, ₦50 notes) that auto-tallies drawer cash directly into closing reconciliation.
+* **Thermal POS Slip Layout (`@media print`):** Formatted specifically for standard 58mm and 80mm thermal receipt printers with cashier and manager signature blocks.
+* **Manager PIN Operational Guardrail:** 4-digit PIN verification intercepting sensitive actions (record deletion, history wiping) with in-app PIN updates.
+* **Shift Handover Protocol:** Carry forward closing counted cash directly into the next cashier's opening float with transfer audit notes.
+* **WhatsApp Daily Summary Card:** One-tap export opening WhatsApp Web/App pre-loaded with a formatted daily variance breakdown for store owners.
+* **Granular Expense Tagging:** Dynamic categorization (Fuel/Generator, Thermal Rolls, NEPA/Power Tokens, Maintenance, Welfare) logged directly into records.
+* **Customer Debt Ledger & Overdue Alerts:** Track unpaid customer tickets with payback dates and real-time visual alerts for overdue debts.
+* **State Persistence Across Refreshes:** Active shift state resides in `shift_ledger_active` to safeguard unsaved entries during power cuts or accidental browser tab closures.
+* **Spreadsheet Portability:** Export full shift logs into structured `.csv` files ready for Microsoft Excel or Google Sheets.
+* **Zero Network Footprint:** Runs entirely client-side without databases, API keys, or an active internet connection.
 
 ---
 
@@ -80,15 +83,12 @@ shift-ledger/
 └── README.md         # Operational handbook and technical manual
 ```
 
-## 🔮 Roadmap & Future Enhancements
+##  Roadmap & Future Enhancements(v2.0 & Scalability)
 
-- [ ] **Interactive Cash Counter:** Dynamic breakdown table (₦1,000, ₦500, ₦200, ₦100) that auto-tallies physical cash.
-- [ ] **Thermal Print Styling:** Custom 58mm/80mm printer layout for instant end-of-shift receipts.
-- [ ] **Shift Handover Protocol:** Carry forward reconciled closing cash directly into the next cashier's opening float.
-- [ ] **Manager Action Lock:** PIN verification for deleting transaction records or clearing historical logs.
-- [ ] **Granular Expense Tagging:** Itemized tagging for fuel, power tokens, paper rolls, and shop maintenance.
-- [ ] **WhatsApp/PDF Summary:** One-tap export of the reconciliation sheet for fast owner reporting.
-- [ ] **IndexedDB Migration:** Extended offline storage capabilities for retail outlets handling months or years of dense transactional volume.
+- **Backend-as-a-Service Integration (Supabase / PocketBase):** Migrate from LocalStorage to a cloud database for real-time multi-terminal syncing across shop counters.
+- **Role-Based Authentication (RBAC):** True server-side JWT authentication separating Cashier entry permissions from Manager deletion privileges.
+- **IndexedDB Migration:** Browser offline storage expansion for retail outlets handling months of heavy transaction volume without browser memory limits.
+-  **Analytics Dashboard:** Graphical trend charts displaying daily turnover, fuel consumption patterns, and peak winning payout hours.
 
 ## 👩‍💻 Author
 
